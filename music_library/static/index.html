@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b0f">
+  <title>Resonance — Private Music Library</title>
+  <link rel="stylesheet" href="/static/styles.css?v=20261107-group-analytics">
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand"><span class="brand-mark"><i></i><i></i><i></i><i></i></span><span>resonance</span></div>
+      <nav class="nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">⌂</span><span>Overview</span></button>
+        <button class="nav-item" data-view="sources"><span class="nav-icon">↗</span><span>Telegram Sources</span><b id="sourceNavCount">0</b></button>
+        <button class="nav-item" data-view="library"><span class="nav-icon">♫</span><span>Library</span></button>
+        <button class="nav-item" data-view="activity"><span class="nav-icon">≋</span><span>Activity</span></button>
+        <div class="nav-label">Collection</div>
+        <button class="nav-item" data-view="library" data-library-filter="lossless"><span class="nav-icon">◇</span><span>Lossless</span></button>
+        <button class="nav-item" data-view="library" data-library-filter="recent"><span class="nav-icon">◷</span><span>Recently added</span></button>
+        <button class="nav-item" data-view="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
+      </nav>
+      <div class="sidebar-status">
+        <div class="status-orb" id="sideOrb"></div>
+        <div><strong id="sideStatus">System ready</strong><span id="sideDetail">Local library online</span></div>
+      </div>
+      <div class="sidebar-foot">Private collection<br><span>Files stay on this computer</span></div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-btn mobile-menu" id="menuButton" aria-label="Open menu">☰</button>
+        <label class="global-search"><span>⌕</span><input id="globalSearch" type="search" placeholder="Search tracks, artists, albums…"><kbd>⌘ K</kbd></label>
+        <div class="top-actions">
+          <button class="connection-pill" id="connectionPill" data-view-target="sources"><i></i><span>Telegram offline</span></button>
+          <button class="avatar" id="avatar">R</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="view active" id="view-overview">
+          <div class="page-heading"><div><span class="eyebrow">PRIVATE ARCHIVE</span><h1>Your music, beautifully organized.</h1><p>Collect, inspect, and enjoy every recording in one lossless-first library.</p></div><div class="heading-time"><span id="todayLabel"></span><strong id="clockLabel"></strong></div></div>
+
+          <article class="command-cluster" id="commandCluster">
+            <div class="cluster-topline">
+              <div><span class="live-indicator"><i></i> TELEGRAM INGESTION</span><h2 id="syncHeadline">Ready when you are</h2><p id="syncDescription">Connect Telegram and select your music groups to begin building the collection.</p></div>
+              <span class="cluster-mode">LOSSLESS DRIVE</span>
+            </div>
+
+            <div class="cluster-bezel">
+              <svg class="instrument-cluster" viewBox="0 0 1200 560" role="img" aria-label="Telegram speed, file progress, and library capacity instruments">
+                <defs>
+                  <radialGradient id="faceGlow"><stop offset="0" stop-color="#151a1c"/><stop offset=".72" stop-color="#101416"/><stop offset="1" stop-color="#07090a"/></radialGradient>
+                  <linearGradient id="rimMetal" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#484c4f"/><stop offset=".18" stop-color="#1d2022"/><stop offset=".82" stop-color="#08090a"/><stop offset="1" stop-color="#343739"/></linearGradient>
+                  <filter id="cyanGlow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                  <filter id="needleGlow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                  <line id="sideTick" x1="270" y1="124" x2="270" y2="145"/><line id="mainTick" x1="600" y1="36" x2="600" y2="63"/><line id="rightTick" x1="930" y1="124" x2="930" y2="145"/>
+                </defs>
+                <path class="cluster-housing" d="M32 486V282Q35 219 100 194Q200 151 355 172Q401 67 505 28Q600-8 695 28Q799 67 845 172Q1000 151 1100 194Q1165 219 1168 282V486Z"/>
+                <g class="svg-dial side-face left-face" transform="matrix(.76 0 0 .76 -15.2 70.6)">
+                  <circle class="rim outer" cx="270" cy="315" r="222"/><circle class="rim inner" cx="270" cy="315" r="208"/><circle class="dial-face" cx="270" cy="315" r="197"/>
+                  <path class="dial-track" d="M104.59 410.50 A191 191 0 1 1 435.41 410.50" pathLength="100"/><path class="dial-arc" id="speedArc" d="M104.59 410.50 A191 191 0 1 1 435.41 410.50" pathLength="100"/>
+                  <g class="svg-ticks"><use href="#sideTick" transform="rotate(-120 270 315)"/><use href="#sideTick" transform="rotate(-100 270 315)"/><use href="#sideTick" transform="rotate(-80 270 315)"/><use href="#sideTick" transform="rotate(-60 270 315)"/><use href="#sideTick" transform="rotate(-40 270 315)"/><use href="#sideTick" transform="rotate(-20 270 315)"/><use href="#sideTick"/><use href="#sideTick" transform="rotate(20 270 315)"/><use href="#sideTick" transform="rotate(40 270 315)"/><use href="#sideTick" transform="rotate(60 270 315)"/><use href="#sideTick" transform="rotate(80 270 315)"/><use href="#sideTick" transform="rotate(100 270 315)"/><use href="#sideTick" transform="rotate(120 270 315)"/></g>
+                  <text class="scale-number" x="144.43" y="387.5">0</text><text class="scale-number" x="144.43" y="242.5">5</text><text class="scale-number" x="270" y="170">10</text><text class="scale-number" x="395.57" y="242.5">15</text><text class="scale-number" x="395.57" y="387.5">20+</text><text class="dial-title dial-title-bottom" x="270" y="436">LIVE SPEED · MB/S</text>
+                  <g class="svg-needle" id="speedNeedle"><line x1="270" y1="315" x2="270" y2="190"/><circle cx="270" cy="315" r="13"/></g><text class="dial-value" id="speedValue" x="270" y="354">0</text><text class="dial-unit" id="speedUnit" x="270" y="382">KB/s</text>
+                  <g class="dial-metrics"><text class="metric-inline" x="144.43" y="418"><tspan class="metric-key">PEAK </tspan><tspan id="speedPeak">0 KB/s</tspan></text><text class="metric-inline" x="395.57" y="418"><tspan class="metric-key">ETA </tspan><tspan id="speedEta">&mdash;</tspan></text></g>
+                </g>
+                <g class="svg-dial side-face right-face" transform="matrix(.76 0 0 .76 303.2 70.6)">
+                  <circle class="rim outer" cx="930" cy="315" r="222"/><circle class="rim inner" cx="930" cy="315" r="208"/><circle class="dial-face" cx="930" cy="315" r="197"/>
+                  <path class="dial-track" d="M764.59 410.50 A191 191 0 1 1 1095.41 410.50" pathLength="100"/><path class="dial-arc" id="storageArc" d="M764.59 410.50 A191 191 0 1 1 1095.41 410.50" pathLength="100"/>
+                  <g class="svg-ticks"><use href="#rightTick" transform="rotate(-120 930 315)"/><use href="#rightTick" transform="rotate(-100 930 315)"/><use href="#rightTick" transform="rotate(-80 930 315)"/><use href="#rightTick" transform="rotate(-60 930 315)"/><use href="#rightTick" transform="rotate(-40 930 315)"/><use href="#rightTick" transform="rotate(-20 930 315)"/><use href="#rightTick"/><use href="#rightTick" transform="rotate(20 930 315)"/><use href="#rightTick" transform="rotate(40 930 315)"/><use href="#rightTick" transform="rotate(60 930 315)"/><use href="#rightTick" transform="rotate(80 930 315)"/><use href="#rightTick" transform="rotate(100 930 315)"/><use href="#rightTick" transform="rotate(120 930 315)"/></g>
+                  <text class="scale-number" x="804.43" y="387.5">E</text><text class="scale-number" x="804.43" y="242.5">25</text><text class="scale-number" x="930" y="170">50</text><text class="scale-number" x="1055.57" y="242.5">75</text><text class="scale-number" x="1055.57" y="387.5">F</text><text class="dial-title dial-title-bottom" x="930" y="436">LIBRARY / DISK · % USED</text>
+                  <g class="svg-needle" id="storageNeedle"><line x1="930" y1="315" x2="930" y2="190"/><circle cx="930" cy="315" r="13"/></g><text class="dial-value" id="clusterDiskPct" x="930" y="362">0%</text><text class="dial-unit" x="930" y="391">DISK USED</text><g class="dial-metrics storage-metrics"><text class="metric-label" x="810" y="438">TRACKS</text><text class="metric-value" id="dialTracks" x="810" y="456">0</text><text class="metric-label" x="890" y="438">INDEXED</text><text class="metric-value" id="dialIndexed" x="890" y="456">0 B</text><text class="metric-label" x="970" y="438">USED</text><text class="metric-value" id="dialDiskUsed" x="970" y="456">0 B</text><text class="metric-label" x="1050" y="438">FREE</text><text class="metric-value" id="dialDiskFree" x="1050" y="456">0 B</text></g>
+                </g>
+                <g class="svg-dial main-face" id="mainFace" transform="matrix(.82 0 0 .82 108 62.7)">
+                  <circle class="rim outer" cx="600" cy="265" r="264"/><circle class="rim inner" cx="600" cy="265" r="251"/><circle class="dial-face" cx="600" cy="265" r="239"/>
+                  <path class="dial-track main" d="M401.68 379.50 A229 229 0 1 1 798.32 379.50" pathLength="100"/><path class="dial-arc main" id="fileArc" d="M401.68 379.50 A229 229 0 1 1 798.32 379.50" pathLength="100"/>
+                  <g class="svg-ticks main-ticks"><use href="#mainTick" transform="rotate(-120 600 265)"/><use href="#mainTick" transform="rotate(-105 600 265)"/><use href="#mainTick" transform="rotate(-90 600 265)"/><use href="#mainTick" transform="rotate(-75 600 265)"/><use href="#mainTick" transform="rotate(-60 600 265)"/><use href="#mainTick" transform="rotate(-45 600 265)"/><use href="#mainTick" transform="rotate(-30 600 265)"/><use href="#mainTick" transform="rotate(-15 600 265)"/><use href="#mainTick"/><use href="#mainTick" transform="rotate(15 600 265)"/><use href="#mainTick" transform="rotate(30 600 265)"/><use href="#mainTick" transform="rotate(45 600 265)"/><use href="#mainTick" transform="rotate(60 600 265)"/><use href="#mainTick" transform="rotate(75 600 265)"/><use href="#mainTick" transform="rotate(90 600 265)"/><use href="#mainTick" transform="rotate(105 600 265)"/><use href="#mainTick" transform="rotate(120 600 265)"/></g>
+                  <text class="scale-number main-number" x="444.12" y="355">0</text><text class="scale-number main-number" x="444.12" y="175">25</text><text class="scale-number main-number" x="600" y="85">50</text><text class="scale-number main-number" x="755.88" y="175">75</text><text class="scale-number main-number" x="755.88" y="355">100</text><text class="dial-title main-title dial-title-bottom" x="600" y="414">CURRENT FILE · % COMPLETE</text>
+                  <text class="center-transfer" id="dialTransfer" x="600" y="220">0 B / 0 B</text><g class="svg-needle main-needle" id="fileNeedle"><line x1="600" y1="265" x2="600" y2="105"/><circle cx="600" cy="265" r="16"/></g><text class="dial-value main-value" id="syncPercent" x="600" y="347">0%</text><text class="dial-unit main-unit" x="600" y="382">DOWNLOADED</text>
+                </g>
+                <g class="svg-dial side-face legacy-right" id="storageRing">
+                  <circle class="rim outer" cx="930" cy="315" r="222"/><circle class="rim inner" cx="930" cy="315" r="208"/><circle class="dial-face" cx="930" cy="315" r="197"/>
+                  <path class="dial-track" d="M762 416 A196 196 0 1 1 1098 416" pathLength="100"/><path class="dial-arc" id="storageArcLegacy" d="M762 416 A196 196 0 1 1 1098 416" pathLength="100"/>
+                  <g class="svg-ticks"><use href="#rightTick" transform="rotate(-120 930 315)"/><use href="#rightTick" transform="rotate(-100 930 315)"/><use href="#rightTick" transform="rotate(-80 930 315)"/><use href="#rightTick" transform="rotate(-60 930 315)"/><use href="#rightTick" transform="rotate(-40 930 315)"/><use href="#rightTick" transform="rotate(-20 930 315)"/><use href="#rightTick"/><use href="#rightTick" transform="rotate(20 930 315)"/><use href="#rightTick" transform="rotate(40 930 315)"/><use href="#rightTick" transform="rotate(60 930 315)"/><use href="#rightTick" transform="rotate(80 930 315)"/><use href="#rightTick" transform="rotate(100 930 315)"/><use href="#rightTick" transform="rotate(120 930 315)"/></g>
+                  <text class="dial-title" x="930" y="157">LIBRARY CAPACITY</text><text class="scale-number" x="780" y="390">E</text><text class="scale-number" x="782" y="238">25</text><text class="scale-number" x="930" y="168">50</text><text class="scale-number" x="1078" y="238">75</text><text class="scale-number" x="1080" y="390">F</text>
+                  <g class="svg-needle" id="storageNeedleLegacy"><line x1="930" y1="315" x2="930" y2="174"/><circle cx="930" cy="315" r="13"/></g><text class="dial-value" id="clusterDiskPctLegacy" x="930" y="307">0%</text><text class="dial-unit" x="930" y="330">DISK USED</text><text class="micro-value" id="storageUsedLegacy" x="825" y="444">0 GB INDEXED</text><text class="micro-value" id="clusterTracksLegacy" x="1035" y="444">0 TRACKS</text>
+                </g>
+                <use class="main-face-overlay" href="#mainFace" aria-hidden="true"/>
+              </svg>
+              <section class="cluster-dial cluster-side speed-dial" aria-label="Live Telegram download speed">
+                <div class="dial-label active">TELEGRAM SPEED</div>
+                <svg viewBox="0 0 200 200" role="img">
+                  <defs><linearGradient id="speedGradient"><stop offset="0" stop-color="#37e1ef"/><stop offset=".7" stop-color="#38c8e9"/><stop offset="1" stop-color="#ff624d"/></linearGradient></defs>
+                  <path class="dial-track" d="M30 158 A82 82 0 1 1 170 158" pathLength="100"/>
+                  <path class="dial-arc main" id="speedArc" d="M30 158 A82 82 0 1 1 170 158" pathLength="100"/>
+                  <g class="dial-ticks"><path d="M100 25v13 M100 25v9 M100 25v9 M100 25v13 M100 25v9 M100 25v9 M100 25v13 M100 25v9 M100 25v9 M100 25v13 M100 25v9 M100 25v9 M100 25v13" transform="rotate(-120 100 112)"/><path d="M100 25v9" transform="rotate(-100 100 112)"/><path d="M100 25v13" transform="rotate(-80 100 112)"/><path d="M100 25v9" transform="rotate(-60 100 112)"/><path d="M100 25v13" transform="rotate(-40 100 112)"/><path d="M100 25v9" transform="rotate(-20 100 112)"/><path d="M100 25v13"/><path d="M100 25v9" transform="rotate(20 100 112)"/><path d="M100 25v13" transform="rotate(40 100 112)"/><path d="M100 25v9" transform="rotate(60 100 112)"/><path d="M100 25v13" transform="rotate(80 100 112)"/><path d="M100 25v9" transform="rotate(100 100 112)"/><path d="M100 25v13" transform="rotate(120 100 112)"/></g>
+                  <g class="gauge-needle" id="speedNeedle"><line x1="100" y1="112" x2="100" y2="46"/><circle cx="100" cy="112" r="7"/></g>
+                  <text x="24" y="161">0</text><text x="31" y="76">5</text><text x="94" y="39">10</text><text x="157" y="76">15</text><text x="167" y="161">20+</text>
+                </svg>
+                <div class="speed-readout side-speed"><strong id="speedValue">0</strong><span id="speedUnit">KB/s</span><small>LIVE</small></div>
+                <div class="odometer side-odometer"><span>PEAK</span><strong id="speedPeak">0 KB/s</strong><i></i><span>ETA</span><strong id="speedEta">—</strong></div>
+              </section>
+
+              <section class="cluster-dial cluster-main progress-dial" aria-label="Current file progress">
+                <div class="dial-label active">CURRENT FILE PROGRESS</div>
+                <svg viewBox="0 0 200 200" role="img">
+                  <path class="dial-track main" d="M30 158 A82 82 0 1 1 170 158" pathLength="100"/>
+                  <path class="dial-arc cyan main" id="fileArc" d="M30 158 A82 82 0 1 1 170 158" pathLength="100"/>
+                  <g class="dial-ticks major"><path d="M100 24v15" transform="rotate(-120 100 112)"/><path d="M100 24v9" transform="rotate(-108 100 112)"/><path d="M100 24v9" transform="rotate(-96 100 112)"/><path d="M100 24v15" transform="rotate(-80 100 112)"/><path d="M100 24v9" transform="rotate(-64 100 112)"/><path d="M100 24v9" transform="rotate(-52 100 112)"/><path d="M100 24v15" transform="rotate(-40 100 112)"/><path d="M100 24v9" transform="rotate(-24 100 112)"/><path d="M100 24v9" transform="rotate(-12 100 112)"/><path d="M100 24v15"/><path d="M100 24v9" transform="rotate(12 100 112)"/><path d="M100 24v9" transform="rotate(24 100 112)"/><path d="M100 24v15" transform="rotate(40 100 112)"/><path d="M100 24v9" transform="rotate(52 100 112)"/><path d="M100 24v9" transform="rotate(64 100 112)"/><path d="M100 24v15" transform="rotate(80 100 112)"/><path d="M100 24v9" transform="rotate(96 100 112)"/><path d="M100 24v9" transform="rotate(108 100 112)"/><path d="M100 24v15" transform="rotate(120 100 112)"/></g>
+                  <g class="dial-needle" id="fileNeedle"><line x1="100" y1="112" x2="100" y2="39"/><circle cx="100" cy="112" r="8"/></g>
+                  <text x="24" y="161">0</text><text x="31" y="76">25</text><text x="93" y="37">50</text><text x="157" y="76">75</text><text x="164" y="161">100</text>
+                </svg>
+                <div class="dial-readout main-progress"><strong id="syncPercent">0%</strong><span>DOWNLOADED</span></div>
+                <div class="odometer main-odometer"><span id="syncSource">WAITING FOR SOURCE</span><i></i><strong id="syncImported">0 IMPORTED</strong></div>
+              </section>
+
+              <section class="cluster-dial cluster-side library-dial" aria-label="Library storage health">
+                <div class="dial-label">LIBRARY CAPACITY</div>
+                <div class="storage-ring" id="storageRing">
+                  <svg viewBox="0 0 200 200" role="img">
+                    <path class="dial-track" d="M30 158 A82 82 0 1 1 170 158" pathLength="100"/>
+                    <path class="dial-arc cyan" id="storageArc" d="M30 158 A82 82 0 1 1 170 158" pathLength="100"/>
+                    <g class="dial-ticks"><path d="M100 25v13" transform="rotate(-120 100 112)"/><path d="M100 25v9" transform="rotate(-100 100 112)"/><path d="M100 25v13" transform="rotate(-80 100 112)"/><path d="M100 25v9" transform="rotate(-60 100 112)"/><path d="M100 25v13" transform="rotate(-40 100 112)"/><path d="M100 25v9" transform="rotate(-20 100 112)"/><path d="M100 25v13"/><path d="M100 25v9" transform="rotate(20 100 112)"/><path d="M100 25v13" transform="rotate(40 100 112)"/><path d="M100 25v9" transform="rotate(60 100 112)"/><path d="M100 25v13" transform="rotate(80 100 112)"/><path d="M100 25v9" transform="rotate(100 100 112)"/><path d="M100 25v13" transform="rotate(120 100 112)"/></g>
+                    <g class="dial-needle" id="storageNeedle"><line x1="100" y1="112" x2="100" y2="46"/><circle cx="100" cy="112" r="7"/></g>
+                    <text x="24" y="161">E</text><text x="31" y="76">25</text><text x="94" y="39">50</text><text x="157" y="76">75</text><text x="169" y="161">F</text>
+                  </svg>
+                  <div class="dial-readout"><strong id="clusterDiskPct">0%</strong><span>DISK USED</span></div>
+                </div>
+                <div class="dial-footer"><span id="storageUsed">0 GB indexed</span><strong id="clusterTracks">0 tracks</strong></div>
+              </section>
+            </div>
+
+            <div class="cluster-telemetry">
+              <div class="telemetry-file"><span>NOW RECEIVING</span><strong id="syncFile">No active download</strong></div>
+              <div><span>TRANSFERRED</span><strong id="syncTransfer">—</strong></div>
+              <div><span>SESSION DATA</span><strong id="speedTransferred">0 B</strong></div>
+              <div class="cluster-storage"><span id="diskUsed">0 GB disk used</span><div class="storage-bar"><i id="diskProgress"></i></div><small id="diskFree">0 GB free</small></div>
+            </div>
+            <div class="instrument-console" aria-label="Live download statistics">
+              <div class="console-file"><span>NOW RECEIVING</span><strong id="consoleFile">No active download</strong><small id="consoleSource">Waiting for source</small></div>
+              <div class="console-metric console-progress"><span>FILE PROGRESS</span><strong id="consoleProgress">0%</strong><small id="consoleTransfer">&mdash;</small></div>
+              <div class="console-metric console-speed"><span>LIVE SPEED</span><strong><b id="consoleSpeed">0</b> <small id="consoleSpeedUnit">KB/s</small></strong><small id="consoleSpeedMeta">Peak 0 KB/s &middot; ETA &mdash;</small></div>
+              <div class="console-metric console-storage"><span>LIBRARY / DISK</span><strong id="consoleLibrary">0 tracks</strong><small><b id="consoleDiskUsed">0 GB used</b> &middot; <b id="consoleDiskFree">0 GB free</b></small><div class="storage-bar"><i id="consoleDiskProgress"></i></div></div>
+            </div>
+            <div class="progress cluster-progress"><i id="syncProgress"></i></div>
+            <div class="cluster-controls"><span class="cluster-status"><i></i><b id="clusterStatusText">SYSTEM READY</b></span><div class="sync-actions"><button class="btn primary" id="startSync"><span>▶</span> Start sync</button><button class="btn danger ghost" id="stopSync" disabled>■ Stop safely</button><button class="icon-btn" id="refreshDashboard" title="Refresh dashboard">↻</button></div></div>
+          </article>
+
+          <section class="panel source-analytics" id="sourceAnalytics" aria-labelledby="sourceAnalyticsTitle">
+            <div class="source-analytics-head"><div><span class="eyebrow">SOURCE INTELLIGENCE</span><h2 id="sourceAnalyticsTitle">Telegram group analytics</h2><p>Combined progress and individual statistics for every selected music source.</p></div><span class="source-count" id="groupStatsCount">0 SOURCES</span></div>
+            <div class="source-aggregate">
+              <div class="aggregate-progress"><span>ALL SELECTED GROUPS</span><div><strong id="groupOverallPercent">0%</strong><small id="groupOverallScope">Waiting for synchronization</small></div><div class="source-progress"><i id="groupOverallBar"></i></div></div>
+              <div><span>COMPLETED / DISCOVERED</span><strong id="groupOverallFiles">0 / 0</strong><small>Telegram media files</small></div>
+              <div><span>PENDING FILES</span><strong id="groupOverallPending">0</strong><small>across all groups</small></div>
+              <div><span>DATA REMAINING</span><strong id="groupOverallBytes">0 B</strong><small>known download volume</small></div>
+              <div><span>COMBINED ETA</span><strong id="groupOverallEta">&mdash;</strong><small id="groupOverallEtaMeta">available after scan</small></div>
+            </div>
+            <div class="group-table-head"><span>TELEGRAM SOURCE</span><span>PROGRESS</span><span>DONE / FOUND</span><span>PENDING</span><span>DATA LEFT</span><span>TRACKS</span><span>STATE</span></div>
+            <div class="group-stats-list" id="groupStatsList"><div class="group-stats-empty"><span>◎</span><strong>Group statistics are preparing</strong><small>Individual source data appears when synchronization starts.</small></div></div>
+          </section>
+
+          <div class="stats-grid">
+            <article class="stat-card violet"><span class="stat-icon">♫</span><div><span>TRACKS</span><strong id="statTracks">0</strong><small id="statDuration">0 hours of music</small></div></article>
+            <article class="stat-card coral"><span class="stat-icon">▣</span><div><span>ALBUMS</span><strong id="statAlbums">0</strong><small>organized releases</small></div></article>
+            <article class="stat-card cyan"><span class="stat-icon">♬</span><div><span>ARTISTS</span><strong id="statArtists">0</strong><small>unique performers</small></div></article>
+            <article class="stat-card green"><span class="stat-icon">◇</span><div><span>LOSSLESS</span><strong id="statLossless">0</strong><small id="losslessRatio">0% of collection</small></div></article>
+          </div>
+
+          <div class="content-grid">
+            <article class="panel recent-panel"><div class="panel-head"><div><span class="eyebrow">FRESH FROM THE ARCHIVE</span><h2>Recently added</h2></div><button class="text-btn" data-view-target="library">View library →</button></div><div class="recent-grid" id="recentGrid"></div></article>
+            <article class="panel formats-panel"><div class="panel-head"><div><span class="eyebrow">COLLECTION PROFILE</span><h2>Audio formats</h2></div></div><div id="formatList" class="format-list"></div><div class="quality-note"><span>◇</span><div><strong>Lossless-first archive</strong><p>Original files are always preserved without conversion.</p></div></div></article>
+          </div>
+        </section>
+
+        <section class="view" id="view-sources">
+          <div class="page-heading compact"><div><span class="eyebrow">INGESTION</span><h1>Telegram Sources</h1><p>Connect your account, choose trusted groups, and control what enters the library.</p></div><button class="btn secondary" id="discoverGroups">↻ Refresh groups</button></div>
+          <div class="source-layout">
+            <article class="panel connection-card">
+              <div class="panel-head"><div><span class="eyebrow">ACCOUNT</span><h2>Telegram connection</h2></div><span class="state-chip" id="telegramState">Not configured</span></div>
+              <div class="account-summary" id="accountSummary"><div class="telegram-logo">✈</div><div><strong>No account connected</strong><p>Use your own Telegram API application to access approved groups.</p></div></div>
+              <div class="login-wizard" id="loginWizard">
+                <div class="login-progress">
+                  <div class="login-step active" data-login-step="credentials"><i>1</i><span>API setup</span></div><b></b>
+                  <div class="login-step" data-login-step="phone"><i>2</i><span>Phone</span></div><b></b>
+                  <div class="login-step" data-login-step="code"><i>3</i><span>Code</span></div><b></b>
+                  <div class="login-step" data-login-step="password"><i>4</i><span>2FA</span></div>
+                </div>
+                <div class="wizard-message" id="wizardMessage"><strong>Start with your Telegram API details</strong><span>You only need to configure these once.</span></div>
+
+                <form id="configForm" class="form-stack wizard-panel" data-panel="credentials">
+                  <div class="step-title"><i>1</i><div><strong>Telegram API credentials</strong><span>Required by Telegram for secure account access.</span></div></div>
+                  <div class="field-row"><label><span>API ID</span><input id="apiId" inputmode="numeric" placeholder="12345678" required></label><label><span>API hash</span><input id="apiHash" type="password" placeholder="32-character API hash" required></label></div>
+                  <div class="form-note">Get these from <a href="https://my.telegram.org" target="_blank" rel="noreferrer">my.telegram.org</a> → API development tools. They stay on this computer.</div>
+                  <button class="btn primary" type="submit">Save & continue <span>→</span></button>
+                </form>
+
+                <form id="phoneForm" class="form-stack wizard-panel locked" data-panel="phone">
+                  <div class="step-title"><i>2</i><div><strong>Your Telegram phone number</strong><span>Include the country code, for example +971.</span></div></div>
+                  <label><span>Phone number</span><input id="phoneNumber" type="tel" autocomplete="tel" placeholder="+971 50 123 4567" required disabled></label>
+                  <button class="btn primary" type="submit" disabled>Send code in Telegram <span>→</span></button>
+                </form>
+
+                <form id="verifyForm" class="form-stack wizard-panel locked" data-panel="code">
+                  <div class="step-title"><i>3</i><div><strong>Verification code</strong><span>Open Telegram and enter the code it sends you.</span></div></div>
+                  <label id="codeField"><span>Telegram login code</span><input id="loginCode" inputmode="numeric" autocomplete="one-time-code" placeholder="12345" disabled></label>
+                  <label id="passwordField" class="hidden"><span>Two-step verification password</span><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your Telegram 2FA password"></label>
+                  <button class="btn primary" type="submit" disabled>Connect Telegram <span>→</span></button>
+                </form>
+              </div>
+              <div class="connection-actions hidden" id="connectedActions"><button class="btn danger ghost" id="disconnectTelegram">Disconnect account</button></div>
+            </article>
+
+            <article class="panel source-list-card">
+              <div class="panel-head"><div><span class="eyebrow">SOURCE CONTROL</span><h2>Groups & channels</h2></div><span class="count-pill" id="sourceCount">0 available</span></div>
+              <label class="source-search"><span>⌕</span><input id="sourceSearch" placeholder="Filter groups…"></label>
+              <div class="source-list" id="sourceList"><div class="empty-state small"><span>↗</span><strong>No groups loaded</strong><p>Connect Telegram, then refresh your groups.</p></div></div>
+              <div class="source-footer"><span><i class="secure-dot"></i> Only selected sources will be scanned</span><button class="btn primary" id="saveSources">Save selection</button></div>
+            </article>
+          </div>
+          <article class="panel workflow-panel"><div><span class="step done">1</span><strong>Connect</strong><p>Your encrypted Telegram session stays local.</p></div><i></i><div><span class="step">2</span><strong>Select</strong><p>Choose only groups you are allowed to archive.</p></div><i></i><div><span class="step">3</span><strong>Synchronize</strong><p>New media is cataloged without duplication.</p></div><i></i><div><span class="step">4</span><strong>Listen</strong><p>Search and play the organized collection.</p></div></article>
+        </section>
+
+        <section class="view" id="view-library">
+          <header class="library-hero">
+            <div><span class="eyebrow">THE LISTENING ARCHIVE</span><h1>Your Music</h1><p>Explore every recording by song, album, singer, movie, genre and quality.</p></div>
+            <div class="library-summary" aria-label="Collection summary">
+              <div><strong id="libSummaryTracks">0</strong><span>TRACKS</span></div>
+              <div><strong id="libSummaryAlbums">0</strong><span>ALBUMS</span></div>
+              <div><strong id="libSummaryArtists">0</strong><span>SINGERS</span></div>
+              <div><strong id="libSummaryHours">0h</strong><span>LISTENING</span></div>
+            </div>
+          </header>
+
+          <nav class="library-tabs" aria-label="Library sections">
+            <button class="active" data-library-tab="songs"><span>♫</span>Songs</button>
+            <button data-library-tab="albums"><span>▦</span>Albums</button>
+            <button data-library-tab="artists"><span>◉</span>Singers</button>
+            <button data-library-tab="movies"><span>▶</span>Movies</button>
+            <button data-library-tab="genres"><span>◇</span>Genres</button>
+            <button data-library-tab="favourites"><span>♥</span>Favourites</button>
+          </nav>
+
+          <article class="library-workspace">
+            <div class="library-toolbar">
+              <label class="library-search"><span>⌕</span><input id="librarySearch" placeholder="Search songs, singers, albums, movies or genres…"></label>
+              <select id="formatFilter" aria-label="Audio format"><option value="">All formats</option><option>FLAC</option><option>WAV</option><option>ALAC</option><option>M4A</option><option>MP3</option><option>OGG</option><option>OPUS</option><option>APE</option><option>DSF</option></select>
+              <select id="qualityFilter" aria-label="Quality"><option value="">All quality</option><option value="lossless">Lossless</option><option value="hires">Hi-Res</option></select>
+              <select id="librarySort" aria-label="Sort collection"><option value="recent">Recently added</option><option value="title">Title A–Z</option><option value="artist">Singer A–Z</option><option value="album">Album A–Z</option><option value="year">Newest year</option><option value="quality">Highest quality</option><option value="size">Largest files</option></select>
+              <span class="library-result-count" id="trackCount">Loading…</span>
+            </div>
+            <div class="active-library-filter hidden" id="activeLibraryFilter"><span id="activeLibraryFilterText"></span><button id="clearLibraryFilter" title="Clear collection filter">×</button></div>
+            <div class="library-content" id="libraryContent">
+              <div class="library-loading"><i></i><span>Reading your archive…</span></div>
+            </div>
+            <div class="library-more hidden" id="libraryMore"><button class="btn secondary" id="loadMoreTracks">Load more tracks</button></div>
+          </article>
+        </section>
+
+        <section class="view" id="view-activity">
+          <div class="page-heading compact"><div><span class="eyebrow">OPERATIONS</span><h1>Activity & Queue</h1><p>See every processed archive, download, import, and error.</p></div><button class="btn secondary" id="refreshActivity">↻ Refresh</button></div>
+          <div class="stats-grid slim"><article class="stat-card"><span class="stat-icon">⇣</span><div><span>FILES SEEN</span><strong id="activityFiles">0</strong></div></article><article class="stat-card"><span class="stat-icon">✓</span><div><span>COMPLETED</span><strong id="activityComplete">0</strong></div></article><article class="stat-card"><span class="stat-icon">!</span><div><span>FAILED</span><strong id="activityFailed">0</strong></div></article><article class="stat-card"><span class="stat-icon">↗</span><div><span>ACTIVE SOURCES</span><strong id="activitySources">0</strong></div></article></div>
+          <article class="panel activity-panel"><div class="activity-table" id="activityTable"></div></article>
+        </section>
+
+        <section class="view" id="view-settings">
+          <div class="page-heading compact"><div><span class="eyebrow">SYSTEM</span><h1>Library Settings</h1><p>Storage, safety limits, and privacy information for this installation.</p></div></div>
+          <div class="settings-grid">
+            <article class="panel settings-card"><span class="settings-icon">▱</span><div><h2>Storage locations</h2><p>Downloaded media is organized locally. Paths are configured in your server environment.</p><dl><dt>Library</dt><dd>./library</dd><dt>Database</dt><dd>./data/library.sqlite3</dd><dt>Incoming</dt><dd>./incoming</dd></dl></div></article>
+            <article class="panel settings-card"><span class="settings-icon">⌾</span><div><h2>Archive protection</h2><p>ZIP files are checked for path traversal, excessive file counts, and unsafe expansion sizes before extraction.</p><dl><dt>Download limit</dt><dd>10 GB / file</dd><dt>Archive limit</dt><dd>20 GB expanded</dd><dt>Max entries</dt><dd>5,000 files</dd></dl></div></article>
+            <article class="panel settings-card privacy"><span class="settings-icon">◇</span><div><h2>Privacy boundary</h2><p>This dashboard is designed for localhost. Do not expose it directly to the internet until user authentication and HTTPS are configured.</p><span class="good-chip">Local-only mode</span></div></article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="player hidden" id="player"><div class="player-art" id="playerArt">♫</div><div class="player-meta"><strong id="playerTitle">—</strong><span id="playerArtist">—</span></div><div class="player-skip"><button id="previousTrack" title="Previous track">‹</button><button id="nextTrack" title="Next track">›</button></div><audio id="audio" controls preload="metadata"></audio><button class="player-queue-button" id="queueButton" title="Playback queue">QUEUE <b id="queueCount">0</b></button><button class="icon-btn" id="closePlayer">×</button></div>
+  <aside class="queue-drawer hidden" id="queueDrawer" aria-label="Playback queue"><div class="queue-head"><div><span class="eyebrow">UP NEXT</span><h3>Playback queue</h3></div><button class="icon-btn" id="closeQueue">×</button></div><div id="queueList" class="queue-list"></div><button class="text-btn" id="clearQueue">Clear queue</button></aside>
+  <div class="toast-stack" id="toasts" aria-live="polite"></div>
+  <div class="mobile-scrim" id="scrim"></div>
+  <script src="/static/app.js?v=20261107-queue-cleanup" defer></script>
+</body>
+</html>
