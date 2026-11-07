@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from telethon import TelegramClient, utils
+from telethon.errors import FileReferenceExpiredError
 from telethon.tl.custom.message import Message
 from telethon.tl.types import InputDocumentFileLocation
 
@@ -177,6 +178,64 @@ class TelegramCollector:
             }
         )
 
+    async def _refresh_message_reference(self, message: Message) -> Message:
+        """Fetch the message again so Telegram returns a current file reference."""
+        input_chat = getattr(message, "input_chat", None) or getattr(message, "peer_id", None)
+        if input_chat is None:
+            get_input_chat = getattr(message, "get_input_chat", None)
+            if get_input_chat is not None:
+                input_chat = await get_input_chat()
+        if input_chat is None:
+            raise RuntimeError(f"Cannot refresh Telegram message {message.id}: source is unknown")
+
+        refreshed = await self.client.get_messages(input_chat, ids=int(message.id))
+        if isinstance(refreshed, (list, tuple)):
+            refreshed = refreshed[0] if refreshed else None
+        if refreshed is None or getattr(refreshed, "document", None) is None:
+            raise RuntimeError(f"Telegram media is no longer available for message {message.id}")
+        return refreshed
+
+    async def _download_document(
+        self,
+        message: Message,
+        download_path: Path,
+        part_size_kb: int,
+        size: int,
+        progress: Callable[[int, int], None],
+    ) -> None:
+        document = message.document
+        location = InputDocumentFileLocation(
+            id=document.id,
+            access_hash=document.access_hash,
+            file_reference=document.file_reference,
+            thumb_size="",
+        )
+        await self.client.download_file(
+            location,
+            str(download_path),
+            part_size_kb=part_size_kb,
+            file_size=size,
+            progress_callback=progress,
+            dc_id=document.dc_id,
+        )
+
+    async def _download_document_with_refresh(
+        self,
+        message: Message,
+        download_path: Path,
+        part_size_kb: int,
+        size: int,
+        progress: Callable[[int, int], None],
+    ) -> None:
+        try:
+            await self._download_document(message, download_path, part_size_kb, size, progress)
+        except FileReferenceExpiredError:
+            logger.info("Refreshing expired Telegram reference for message %s", message.id)
+            download_path.unlink(missing_ok=True)
+            progress(0, size)
+            refreshed = await self._refresh_message_reference(message)
+            await self._download_document(refreshed, download_path, part_size_kb, size, progress)
+
     async def _process_message(
         self, source_id: int, message: Message, source_title: str | None = None
     ) -> bool:
@@ -237,20 +296,9 @@ class TelegramCollector:
                 # Telegram permits 512 KB download parts. Large parts substantially reduce
                 # request/response latency for lossless albums and archives.
                 part_size_kb = min(max(self.settings.telegram_download_part_kb, 4), 512)
-                location = InputDocumentFileLocation(
-                    id=document.id,
-                    access_hash=document.access_hash,
-                    file_reference=document.file_reference,
-                    thumb_size="",
-                )
                 try:
-                    await self.client.download_file(
-                        location,
-                        str(download_path),
-                        part_size_kb=part_size_kb,
-                        file_size=size,
-                        progress_callback=progress,
-                        dc_id=document.dc_id,
+                    await self._download_document_with_refresh(
+                        message, download_path, part_size_kb, size, progress
                     )
                 except Exception:
                     fallback_part_kb = min(part_size_kb, 128)
@@ -262,13 +310,8 @@ class TelegramCollector:
                     )
                     download_path.unlink(missing_ok=True)
                     progress(0, size)
-                    await self.client.download_file(
-                        location,
-                        str(download_path),
-                        part_size_kb=fallback_part_kb,
-                        file_size=size,
-                        progress_callback=progress,
-                        dc_id=document.dc_id,
+                    await self._download_document_with_refresh(
+                        message, download_path, fallback_part_kb, size, progress
                     )
             else:
                 await message.download_media(file=str(download_path), progress_callback=progress)
