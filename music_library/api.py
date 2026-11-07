@@ -204,6 +204,11 @@ def save_telegram_config(payload: TelegramConfigInput):
 
 @app.get("/api/telegram/status")
 async def telegram_status():
+    # The active sync already owns an authenticated Telegram client. Starting a
+    # second client merely to refresh the header can contend for the session
+    # database and incorrectly report the account as offline.
+    if sync_manager.snapshot()["status"] in {"running", "stopping"}:
+        return telegram.cached_status()
     return await telegram.status()
 
 

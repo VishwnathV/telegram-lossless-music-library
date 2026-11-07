@@ -57,6 +57,27 @@ def test_dashboard_page_and_api_are_available(monkeypatch):
     assert dashboard.json()["sync"]["inventory"]["files_remaining"] == 0
 
 
+def test_telegram_status_uses_cached_connection_during_sync(monkeypatch):
+    cached = {
+        "configured": True,
+        "connected": True,
+        "account": {"name": "Test Listener"},
+    }
+
+    monkeypatch.setattr(api_module.sync_manager, "snapshot", lambda: {"status": "running"})
+    monkeypatch.setattr(api_module.telegram, "cached_status", lambda: cached)
+
+    async def unexpected_live_status():
+        raise AssertionError("an active sync must not start a second Telegram client")
+
+    monkeypatch.setattr(api_module.telegram, "status", unexpected_live_status)
+
+    response = TestClient(app).get("/api/telegram/status")
+
+    assert response.status_code == 200
+    assert response.json() == cached
+
+
 def test_sync_inventory_tracks_global_remaining_work(tmp_path):
     settings = Settings(
         data_dir=tmp_path / "data",
