@@ -5,7 +5,7 @@ import logging
 import re
 import shutil
 import zipfile
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
@@ -135,16 +135,24 @@ class Cataloger:
         self.settings = settings
         self.database = database
 
-    def expand(self, source: Path, destination: Path) -> list[Path]:
+    def expand(
+        self,
+        source: Path,
+        destination: Path,
+        on_progress: Callable[[str, dict[str, int | str]], None] | None = None,
+    ) -> list[Path]:
         if source.suffix.lower() not in ARCHIVE_EXTENSIONS:
             return [source]
         destination.mkdir(parents=True, exist_ok=True)
         extracted: list[Path] = []
-        total_size = 0
+        report = on_progress or (lambda _event, _payload: None)
         with zipfile.ZipFile(source) as archive:
             members = [item for item in archive.infolist() if not item.is_dir()]
             if len(members) > self.settings.max_archive_files:
                 raise ValueError("archive contains too many files")
+            total_size = 0
+            audio_size = 0
+            planned: list[tuple[zipfile.ZipInfo, Path]] = []
             for member in members:
                 total_size += member.file_size
                 if total_size > self.settings.max_archive_bytes:
@@ -152,6 +160,20 @@ class Cataloger:
                 target = safe_archive_target(destination, member.filename)
                 if target.suffix.lower() not in AUDIO_EXTENSIONS:
                     continue
+                audio_size += member.file_size
+                planned.append((member, target))
+            report(
+                "archive_validated",
+                {
+                    "entries_total": len(members),
+                    "audio_entries": len(planned),
+                    "ignored_entries": len(members) - len(planned),
+                    "expanded_size": total_size,
+                    "audio_size": audio_size,
+                },
+            )
+            bytes_extracted = 0
+            for index, (member, target) in enumerate(planned, start=1):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 if target.exists():
                     suffix = hashlib.sha256(member.filename.encode("utf-8")).hexdigest()[:8]
@@ -159,6 +181,26 @@ class Cataloger:
                 with archive.open(member) as source_handle, target.open("wb") as target_handle:
                     shutil.copyfileobj(source_handle, target_handle)
                 extracted.append(target)
+                bytes_extracted += member.file_size
+                report(
+                    "archive_extracting",
+                    {
+                        "entries_processed": index,
+                        "audio_entries": len(planned),
+                        "bytes_extracted": bytes_extracted,
+                        "audio_size": audio_size,
+                        "current_entry": member.filename,
+                    },
+                )
+            report(
+                "archive_extracted",
+                {
+                    "entries_processed": len(planned),
+                    "audio_entries": len(planned),
+                    "bytes_extracted": bytes_extracted,
+                    "audio_size": audio_size,
+                },
+            )
         return extracted
 
     def ingest(self, path: Path, message_id: int | None = None) -> tuple[int, bool]:

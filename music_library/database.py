@@ -62,6 +62,28 @@ CREATE TABLE IF NOT EXISTS tracks (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS archive_jobs (
+    id INTEGER PRIMARY KEY,
+    message_id INTEGER NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    compressed_size INTEGER NOT NULL DEFAULT 0,
+    expanded_size INTEGER NOT NULL DEFAULT 0,
+    bytes_extracted INTEGER NOT NULL DEFAULT 0,
+    entries_total INTEGER NOT NULL DEFAULT 0,
+    entries_processed INTEGER NOT NULL DEFAULT 0,
+    analyzed_entries INTEGER NOT NULL DEFAULT 0,
+    audio_entries INTEGER NOT NULL DEFAULT 0,
+    ignored_entries INTEGER NOT NULL DEFAULT 0,
+    tracks_imported INTEGER NOT NULL DEFAULT 0,
+    duplicates INTEGER NOT NULL DEFAULT 0,
+    current_entry TEXT,
+    error TEXT,
+    started_at TEXT,
+    finished_at TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS favourites (
     track_id INTEGER PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -70,6 +92,7 @@ CREATE TABLE IF NOT EXISTS favourites (
 CREATE INDEX IF NOT EXISTS idx_tracks_artist_album ON tracks(artist, album);
 CREATE INDEX IF NOT EXISTS idx_tracks_genre ON tracks(genre);
 CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status);
+CREATE INDEX IF NOT EXISTS idx_archive_jobs_status ON archive_jobs(status);
 CREATE INDEX IF NOT EXISTS idx_favourites_created ON favourites(created_at);
 """
 
@@ -105,6 +128,18 @@ class Database:
             for name, definition in source_columns.items():
                 if name not in existing:
                     connection.execute(f"ALTER TABLE sources ADD COLUMN {name} {definition}")
+            # Existing ZIP messages become immediately visible in archive analytics.
+            # Detailed entry and byte counts are populated when an archive is retried.
+            connection.execute(
+                """INSERT OR IGNORE INTO archive_jobs(
+                    message_id,filename,status,tracks_imported,finished_at
+                )
+                SELECT messages.id,messages.original_name,messages.status,
+                    (SELECT COUNT(1) FROM tracks WHERE tracks.message_id=messages.id),
+                    CASE WHEN messages.status='complete' THEN CURRENT_TIMESTAMP ELSE NULL END
+                FROM messages
+                WHERE LOWER(COALESCE(messages.original_name,'')) LIKE '%.zip'"""
+            )
             try:
                 connection.execute(
                     """CREATE VIRTUAL TABLE IF NOT EXISTS tracks_fts USING fts5(

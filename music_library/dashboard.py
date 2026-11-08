@@ -234,6 +234,7 @@ class SyncManager:
             "finished_at": None,
             "error": None,
             "inventory": self._empty_inventory(),
+            "archive": self._archive_summary(),
         }
 
     @staticmethod
@@ -254,6 +255,138 @@ class SyncManager:
             "groups": {},
         }
 
+    def _archive_summary(self) -> dict[str, Any]:
+        totals = self.database.one(
+            """SELECT COUNT(1) AS total,
+            COALESCE(SUM(CASE WHEN status='complete' THEN 1 ELSE 0 END),0) AS processed,
+            COALESCE(SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END),0) AS failed,
+            COALESCE(SUM(CASE WHEN status='complete' THEN compressed_size ELSE 0 END),0)
+                AS compressed_size,
+            COALESCE(SUM(CASE WHEN status='complete' THEN expanded_size ELSE 0 END),0)
+                AS expanded_size,
+            COALESCE(SUM(CASE WHEN status='complete' THEN entries_total ELSE 0 END),0)
+                AS entries_total,
+            COALESCE(SUM(CASE WHEN status='complete' THEN audio_entries ELSE 0 END),0)
+                AS audio_entries,
+            COALESCE(SUM(CASE WHEN status='complete' THEN ignored_entries ELSE 0 END),0)
+                AS ignored_entries,
+            COALESCE(SUM(CASE WHEN status='complete' THEN tracks_imported ELSE 0 END),0)
+                AS tracks_imported,
+            COALESCE(SUM(CASE WHEN status='complete' THEN duplicates ELSE 0 END),0)
+                AS duplicates
+            FROM archive_jobs"""
+        ) or {}
+        latest = self.database.one(
+            """SELECT filename,status,compressed_size,expanded_size,bytes_extracted,
+            entries_total,entries_processed,analyzed_entries,audio_entries,ignored_entries,
+            tracks_imported,duplicates,current_entry,error
+            FROM archive_jobs ORDER BY updated_at DESC,id DESC LIMIT 1"""
+        )
+        total = int(totals.get("total") or 0)
+        processed = int(totals.get("processed") or 0)
+        return {
+            "exact": False,
+            "total": total,
+            "processed": processed,
+            "pending": max(0, total - processed),
+            "failed": int(totals.get("failed") or 0),
+            "compressed_size": int(totals.get("compressed_size") or 0),
+            "expanded_size": int(totals.get("expanded_size") or 0),
+            "entries_total": int(totals.get("entries_total") or 0),
+            "audio_entries": int(totals.get("audio_entries") or 0),
+            "ignored_entries": int(totals.get("ignored_entries") or 0),
+            "tracks_imported": int(totals.get("tracks_imported") or 0),
+            "duplicates": int(totals.get("duplicates") or 0),
+            "current": dict(latest) if latest else None,
+        }
+
+    def _update_archive_state(self, event: str, payload: dict[str, Any]) -> None:
+        archive = dict(self.state.get("archive") or self._archive_summary())
+        current = dict(archive.get("current") or {})
+        current.update(
+            {
+                key: value
+                for key, value in payload.items()
+                if key
+                in {
+                    "filename",
+                    "compressed_size",
+                    "expanded_size",
+                    "bytes_extracted",
+                    "entries_total",
+                    "entries_processed",
+                    "analyzed_entries",
+                    "audio_entries",
+                    "ignored_entries",
+                    "tracks_imported",
+                    "duplicates",
+                    "current_entry",
+                    "error",
+                }
+            }
+        )
+        stages = {
+            "archive_started": "downloading",
+            "archive_validating": "validating",
+            "archive_validated": "extracting",
+            "archive_extracting": "extracting",
+            "archive_extracted": "extracting",
+            "archive_analyzing": "analyzing",
+            "archive_complete": "complete",
+            "archive_failed": "failed",
+        }
+        current["status"] = stages[event]
+        if event == "archive_started":
+            current.update(
+                {
+                    "expanded_size": 0,
+                    "bytes_extracted": 0,
+                    "entries_total": 0,
+                    "entries_processed": 0,
+                    "analyzed_entries": 0,
+                    "audio_entries": 0,
+                    "ignored_entries": 0,
+                    "tracks_imported": 0,
+                    "duplicates": 0,
+                    "current_entry": None,
+                    "error": None,
+                    "progress": 0,
+                }
+            )
+        elif event in {"archive_validated", "archive_extracting", "archive_extracted"}:
+            total = int(current.get("audio_entries") or 0)
+            done = int(current.get("entries_processed") or 0)
+            current["progress"] = round(done / total * 100, 1) if total else 100
+        elif event == "archive_analyzing":
+            total = int(current.get("audio_entries") or 0)
+            done = int(current.get("analyzed_entries") or 0)
+            current["progress"] = round(done / total * 100, 1) if total else 100
+        elif event in {"archive_complete", "archive_failed"}:
+            current["progress"] = 100 if event == "archive_complete" else current.get("progress", 0)
+
+        if event in {"archive_complete", "archive_failed"}:
+            refreshed = self._archive_summary()
+            refreshed["total"] = max(int(archive.get("total") or 0), int(refreshed["total"]))
+            refreshed["pending"] = max(0, refreshed["total"] - refreshed["processed"])
+            refreshed["exact"] = bool(archive.get("exact"))
+            refreshed["current"] = current
+            archive = refreshed
+        else:
+            archive["current"] = current
+        self.state["archive"] = archive
+
+        phase = {
+            "archive_validating": "Validating ZIP archive",
+            "archive_validated": "Preparing ZIP extraction",
+            "archive_extracting": "Extracting ZIP audio",
+            "archive_extracted": "ZIP extraction complete",
+            "archive_analyzing": "Analyzing extracted tracks",
+            "archive_complete": "Archive added to library",
+            "archive_failed": "Archive needs attention",
+        }.get(event)
+        if phase:
+            self.state["phase"] = phase
+
     def snapshot(self) -> dict[str, Any]:
         snapshot = dict(self.state)
         inventory = dict(self.state["inventory"])
@@ -261,6 +394,10 @@ class SyncManager:
             dict(group) for group in inventory.get("groups", {}).values()
         ]
         snapshot["inventory"] = inventory
+        archive = dict(self.state.get("archive") or {})
+        if archive.get("current"):
+            archive["current"] = dict(archive["current"])
+        snapshot["archive"] = archive
         return snapshot
 
     @staticmethod
@@ -304,6 +441,7 @@ class SyncManager:
                 "finished_at": None,
                 "error": None,
                 "inventory": self._empty_inventory(),
+                "archive": self._archive_summary(),
             }
         )
         references = [int(source["telegram_id"]) for source in sources]
@@ -453,6 +591,11 @@ class SyncManager:
             groups[source_id] = group
             inventory["groups"] = groups
             self.state["inventory"] = inventory
+            if payload.get("is_archive") and not payload.get("existing"):
+                archive = dict(self.state["archive"])
+                archive["total"] += 1
+                archive["pending"] = max(0, archive["total"] - archive["processed"])
+                self.state["archive"] = archive
         elif event == "inventory_group":
             inventory = dict(self.state["inventory"])
             inventory["groups_scanned"] += 1
@@ -480,6 +623,9 @@ class SyncManager:
             if not self.state.get("current_file"):
                 update["phase"] = "Media inventory ready"
             self.state.update(update)
+            archive = dict(self.state["archive"])
+            archive["exact"] = True
+            self.state["archive"] = archive
         elif event == "download":
             downloaded = int(payload.get("downloaded") or 0)
             total = int(payload.get("total") or 0)
@@ -525,6 +671,22 @@ class SyncManager:
                     "inventory": inventory,
                 }
             )
+            archive = dict(self.state["archive"])
+            current = dict(archive.get("current") or {})
+            if str(payload.get("filename") or "").lower().endswith(".zip"):
+                current.update(
+                    {
+                        "filename": payload.get("filename"),
+                        "status": "downloading",
+                        "compressed_size": total,
+                        "bytes_downloaded": downloaded,
+                        "progress": round(downloaded / total * 100, 1) if total else 0,
+                    }
+                )
+                archive["current"] = current
+                self.state["archive"] = archive
+        elif event.startswith("archive_"):
+            self._update_archive_state(event, payload)
         elif event == "processing":
             inventory = dict(self.state["inventory"])
             groups, source_id, group = self._group_for_event(inventory, payload)

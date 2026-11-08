@@ -51,6 +51,8 @@ def test_dashboard_page_and_api_are_available(monkeypatch):
     assert "commandCluster" in home.text
     assert "LIBRARY CAPACITY" in home.text
     assert "MEDIA QUEUE" not in home.text
+    assert "ZIP processing workflow" in home.text
+    assert "archiveAnalytics" in home.text
     assert "Telegram group analytics" in home.text
     assert dashboard.status_code == 200
     assert dashboard.json()["sync"]["status"] == "idle"

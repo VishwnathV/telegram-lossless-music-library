@@ -1,4 +1,5 @@
 import asyncio
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -29,7 +30,7 @@ def test_download_retries_with_smaller_parts_and_completes(tmp_path, monkeypatch
         ).lastrowid
 
     collector = TelegramCollector(settings, database)
-    monkeypatch.setattr(collector.cataloger, "expand", lambda *_args: [])
+    monkeypatch.setattr(collector.cataloger, "expand", lambda *_args, **_kwargs: [])
     part_sizes = []
 
     class FakeClient:
@@ -82,7 +83,7 @@ def test_download_refreshes_an_expired_file_reference(tmp_path, monkeypatch):
 
     monkeypatch.setattr(collector_module, "FileReferenceExpiredError", FakeExpiredReference)
     collector = TelegramCollector(settings, database)
-    monkeypatch.setattr(collector.cataloger, "expand", lambda *_args: [])
+    monkeypatch.setattr(collector.cataloger, "expand", lambda *_args, **_kwargs: [])
     references = []
     refreshed_requests = []
 
@@ -124,3 +125,74 @@ def test_download_refreshes_an_expired_file_reference(tmp_path, monkeypatch):
         "SELECT status,error FROM messages WHERE source_id=? AND telegram_message_id=?",
         (source_id, 88),
     ) == {"status": "complete", "error": None}
+
+
+def test_zip_workflow_is_persisted_and_reported(tmp_path, monkeypatch):
+    settings = Settings(
+        tg_api_id=123,
+        tg_api_hash="0123456789abcdef0123456789abcdef",
+        data_dir=tmp_path / "data",
+        incoming_dir=tmp_path / "incoming",
+        library_dir=tmp_path / "library",
+        database_path=tmp_path / "catalog.sqlite3",
+        tg_session_path=tmp_path / "telegram",
+    )
+    settings.ensure_directories()
+    database = Database(settings.database_path)
+    database.initialize()
+    with database.connect() as connection:
+        source_id = connection.execute(
+            "INSERT INTO sources(telegram_id,title) VALUES (?,?)", (123, "Test source")
+        ).lastrowid
+
+    events = []
+    collector = TelegramCollector(
+        settings, database, on_event=lambda event, payload: events.append((event, payload))
+    )
+    created_by_name = {"one.mp3": True, "two.flac": False}
+    monkeypatch.setattr(
+        collector.cataloger,
+        "ingest",
+        lambda path, _message_id: (1, created_by_name[path.name]),
+    )
+
+    class FakeClient:
+        async def download_file(self, _location, file, **kwargs):
+            with zipfile.ZipFile(file, "w") as handle:
+                handle.writestr("Album/one.mp3", b"one")
+                handle.writestr("Album/two.flac", b"two")
+                handle.writestr("Album/cover.jpg", b"cover")
+            kwargs["progress_callback"](100, 100)
+
+    collector.client = FakeClient()
+    message = SimpleNamespace(
+        id=99,
+        date=datetime.now(UTC),
+        file=SimpleNamespace(name="album.zip", size=100),
+        document=SimpleNamespace(id=1, access_hash=2, file_reference=b"ref", dc_id=4),
+    )
+
+    succeeded = asyncio.run(collector._process_message(source_id, message, "Test source"))
+
+    assert succeeded is True
+    job = database.one(
+        """SELECT status,entries_total,entries_processed,analyzed_entries,audio_entries,
+        ignored_entries,tracks_imported,duplicates,error FROM archive_jobs"""
+    )
+    assert job == {
+        "status": "complete",
+        "entries_total": 3,
+        "entries_processed": 2,
+        "analyzed_entries": 2,
+        "audio_entries": 2,
+        "ignored_entries": 1,
+        "tracks_imported": 1,
+        "duplicates": 1,
+        "error": None,
+    }
+    event_names = [event for event, _payload in events]
+    assert event_names[0] == "archive_started"
+    assert "archive_validated" in event_names
+    assert "archive_extracting" in event_names
+    assert "archive_analyzing" in event_names
+    assert "archive_complete" in event_names

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#090b0f">
   <title>Resonance — Private Music Library</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20261107-group-analytics">
+  <link rel="stylesheet" href="/static/styles.css?v=20261108-archive-workflow">
 </head>
 <body>
   <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
@@ -149,6 +149,34 @@
             <div class="cluster-controls"><span class="cluster-status"><i></i><b id="clusterStatusText">SYSTEM READY</b></span><div class="sync-actions"><button class="btn primary" id="startSync"><span>▶</span> Start sync</button><button class="btn danger ghost" id="stopSync" disabled>■ Stop safely</button><button class="icon-btn" id="refreshDashboard" title="Refresh dashboard">↻</button></div></div>
           </article>
 
+          <section class="panel archive-analytics" id="archiveAnalytics" aria-labelledby="archiveAnalyticsTitle">
+            <div class="archive-analytics-head">
+              <div><span class="eyebrow">ARCHIVE INTELLIGENCE</span><h2 id="archiveAnalyticsTitle">ZIP processing workflow</h2><p>Follow every archive from Telegram download through safe extraction and library organization.</p></div>
+              <span class="archive-count" id="archiveCountBadge">0 ARCHIVES</span>
+            </div>
+            <div class="archive-workspace">
+              <div class="archive-current">
+                <div class="archive-current-head"><div><span>CURRENT / LATEST ARCHIVE</span><strong id="archiveCurrentName">No archive processed yet</strong></div><b id="archiveStateBadge">WAITING</b></div>
+                <div class="archive-pipeline" id="archivePipeline">
+                  <span data-archive-stage="downloading"><i>1</i><b>Download</b></span><em></em>
+                  <span data-archive-stage="validating"><i>2</i><b>Validate</b></span><em></em>
+                  <span data-archive-stage="extracting"><i>3</i><b>Extract</b></span><em></em>
+                  <span data-archive-stage="analyzing"><i>4</i><b>Analyze</b></span><em></em>
+                  <span data-archive-stage="complete"><i>5</i><b>Organize</b></span>
+                </div>
+                <div class="archive-progress"><div><span id="archiveProgressText">Waiting for a ZIP file</span><strong id="archiveProgressPercent">0%</strong></div><div><i id="archiveProgressBar"></i></div><small id="archiveCurrentEntry">Archive details will appear here.</small></div>
+              </div>
+              <div class="archive-metrics">
+                <div><span>PROCESSED / DISCOVERED</span><strong id="archiveProcessed">0 / 0</strong><small>Telegram ZIP attachments</small></div>
+                <div><span>PENDING / RETRY</span><strong id="archivePending">0</strong><small id="archiveFailureMeta">0 need attention</small></div>
+                <div><span>AUDIO ENTRIES</span><strong id="archiveAudio">0</strong><small id="archiveIgnored">0 non-audio ignored</small></div>
+                <div><span>TRACKS ADDED</span><strong id="archiveImported">0</strong><small>new library tracks</small></div>
+                <div><span>DUPLICATES</span><strong id="archiveDuplicates">0</strong><small>safely skipped</small></div>
+                <div><span>ARCHIVE STORAGE</span><strong id="archiveStorage">0 B</strong><small id="archiveCompression">expanded from 0 B</small></div>
+              </div>
+            </div>
+          </section>
+
           <section class="panel source-analytics" id="sourceAnalytics" aria-labelledby="sourceAnalyticsTitle">
             <div class="source-analytics-head"><div><span class="eyebrow">SOURCE INTELLIGENCE</span><h2 id="sourceAnalyticsTitle">Telegram group analytics</h2><p>Combined progress and individual statistics for every selected music source.</p></div><span class="source-count" id="groupStatsCount">0 SOURCES</span></div>
             <div class="source-aggregate">
@@ -281,6 +309,6 @@
   <aside class="queue-drawer hidden" id="queueDrawer" aria-label="Playback queue"><div class="queue-head"><div><span class="eyebrow">UP NEXT</span><h3>Playback queue</h3></div><button class="icon-btn" id="closeQueue">×</button></div><div id="queueList" class="queue-list"></div><button class="text-btn" id="clearQueue">Clear queue</button></aside>
   <div class="toast-stack" id="toasts" aria-live="polite"></div>
   <div class="mobile-scrim" id="scrim"></div>
-  <script src="/static/app.js?v=20261107-queue-cleanup" defer></script>
+  <script src="/static/app.js?v=20261108-archive-workflow" defer></script>
 </body>
 </html>

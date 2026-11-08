@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import shutil
+import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
@@ -153,7 +154,14 @@ class TelegramCollector:
                 continue
             self.on_event(
                 "inventory_discovered",
-                {"filename": name, "size": size, "source": title, "source_id": source_id},
+                {
+                    "filename": name,
+                    "size": size,
+                    "source": title,
+                    "source_id": source_id,
+                    "is_archive": suffix in ARCHIVE_EXTENSIONS,
+                    "existing": existing is not None,
+                },
             )
             await work.put(
                 {
@@ -236,6 +244,128 @@ class TelegramCollector:
             refreshed = await self._refresh_message_reference(message)
             await self._download_document(refreshed, download_path, part_size_kb, size, progress)
 
+    def _start_archive_job(
+        self,
+        message_record_id: int,
+        filename: str,
+        compressed_size: int,
+        source_id: int,
+        source_title: str | None,
+    ) -> None:
+        with self.database.connect() as connection:
+            connection.execute(
+                """INSERT INTO archive_jobs(
+                    message_id,filename,status,compressed_size,started_at
+                ) VALUES (?,?, 'downloading',?,CURRENT_TIMESTAMP)
+                ON CONFLICT(message_id) DO UPDATE SET
+                    filename=excluded.filename,status='downloading',
+                    compressed_size=excluded.compressed_size,expanded_size=0,
+                    bytes_extracted=0,entries_total=0,entries_processed=0,
+                    analyzed_entries=0,audio_entries=0,ignored_entries=0,
+                    tracks_imported=0,duplicates=0,current_entry=NULL,error=NULL,
+                    started_at=CURRENT_TIMESTAMP,finished_at=NULL,
+                    updated_at=CURRENT_TIMESTAMP""",
+                (message_record_id, filename, compressed_size),
+            )
+        self.on_event(
+            "archive_started",
+            {
+                "message_id": message_record_id,
+                "filename": filename,
+                "compressed_size": compressed_size,
+                "source_id": source_id,
+                "source": source_title,
+            },
+        )
+
+    def _archive_event(
+        self,
+        message_record_id: int,
+        event: str,
+        payload: dict[str, Any],
+        filename: str,
+        source_id: int,
+        source_title: str | None,
+        *,
+        persist: bool = True,
+    ) -> None:
+        if persist:
+            with self.database.connect() as connection:
+                if event == "archive_validating":
+                    connection.execute(
+                        """UPDATE archive_jobs SET status='validating',current_entry=NULL,
+                        updated_at=CURRENT_TIMESTAMP WHERE message_id=?""",
+                        (message_record_id,),
+                    )
+                elif event == "archive_validated":
+                    connection.execute(
+                        """UPDATE archive_jobs SET status='extracting',expanded_size=?,
+                        entries_total=?,audio_entries=?,ignored_entries=?,
+                        updated_at=CURRENT_TIMESTAMP WHERE message_id=?""",
+                        (
+                            int(payload.get("expanded_size") or 0),
+                            int(payload.get("entries_total") or 0),
+                            int(payload.get("audio_entries") or 0),
+                            int(payload.get("ignored_entries") or 0),
+                            message_record_id,
+                        ),
+                    )
+                elif event in {"archive_extracting", "archive_extracted"}:
+                    connection.execute(
+                        """UPDATE archive_jobs SET status='extracting',entries_processed=?,
+                        bytes_extracted=?,current_entry=?,updated_at=CURRENT_TIMESTAMP
+                        WHERE message_id=?""",
+                        (
+                            int(payload.get("entries_processed") or 0),
+                            int(payload.get("bytes_extracted") or 0),
+                            payload.get("current_entry"),
+                            message_record_id,
+                        ),
+                    )
+                elif event == "archive_analyzing":
+                    connection.execute(
+                        """UPDATE archive_jobs SET status='analyzing',analyzed_entries=?,
+                        tracks_imported=?,duplicates=?,current_entry=?,
+                        updated_at=CURRENT_TIMESTAMP WHERE message_id=?""",
+                        (
+                            int(payload.get("analyzed_entries") or 0),
+                            int(payload.get("tracks_imported") or 0),
+                            int(payload.get("duplicates") or 0),
+                            payload.get("current_entry"),
+                            message_record_id,
+                        ),
+                    )
+                elif event == "archive_complete":
+                    connection.execute(
+                        """UPDATE archive_jobs SET status='complete',analyzed_entries=?,
+                        tracks_imported=?,duplicates=?,current_entry=NULL,error=NULL,
+                        finished_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
+                        WHERE message_id=?""",
+                        (
+                            int(payload.get("analyzed_entries") or 0),
+                            int(payload.get("tracks_imported") or 0),
+                            int(payload.get("duplicates") or 0),
+                            message_record_id,
+                        ),
+                    )
+                elif event == "archive_failed":
+                    connection.execute(
+                        """UPDATE archive_jobs SET status='failed',error=?,
+                        finished_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
+                        WHERE message_id=?""",
+                        (str(payload.get("error") or "Archive processing failed")[:1000], message_record_id),
+                    )
+        self.on_event(
+            event,
+            {
+                **payload,
+                "message_id": message_record_id,
+                "filename": filename,
+                "source_id": source_id,
+                "source": source_title,
+            },
+        )
+
     async def _process_message(
         self, source_id: int, message: Message, source_title: str | None = None
     ) -> bool:
@@ -267,6 +397,11 @@ class TelegramCollector:
         work_dir.mkdir(parents=True, exist_ok=True)
         local_name = safe_filename(name, f"telegram-{message.id}")
         download_path = work_dir / local_name
+        is_archive = suffix in ARCHIVE_EXTENSIONS
+        if is_archive:
+            self._start_archive_job(
+                message_record_id, name or download_path.name, size, source_id, source_title
+            )
         try:
             self.on_event(
                 "download",
@@ -323,15 +458,88 @@ class TelegramCollector:
                     "source_id": source_id,
                 },
             )
-            tracks = self.cataloger.expand(download_path, work_dir / "extracted")
+            last_archive_persist = 0.0
+
+            def archive_progress(event: str, payload: dict[str, int | str]) -> None:
+                nonlocal last_archive_persist
+                now = time.monotonic()
+                persist = (
+                    event != "archive_extracting"
+                    or now - last_archive_persist >= 0.5
+                    or int(payload.get("entries_processed") or 0)
+                    >= int(payload.get("audio_entries") or 0)
+                )
+                if persist:
+                    last_archive_persist = now
+                self._archive_event(
+                    message_record_id,
+                    event,
+                    dict(payload),
+                    name or download_path.name,
+                    source_id,
+                    source_title,
+                    persist=persist,
+                )
+
+            if is_archive:
+                self._archive_event(
+                    message_record_id,
+                    "archive_validating",
+                    {},
+                    name or download_path.name,
+                    source_id,
+                    source_title,
+                )
+            tracks = self.cataloger.expand(
+                download_path,
+                work_dir / "extracted",
+                on_progress=archive_progress if is_archive else None,
+            )
             imported = 0
-            for track in tracks:
+            duplicates = 0
+            last_analysis_persist = 0.0
+            for index, track in enumerate(tracks, start=1):
                 _, created = self.cataloger.ingest(track, message_record_id)
                 imported += int(created)
+                duplicates += int(not created)
+                if is_archive:
+                    now = time.monotonic()
+                    persist = now - last_analysis_persist >= 0.5 or index == len(tracks)
+                    if persist:
+                        last_analysis_persist = now
+                    self._archive_event(
+                        message_record_id,
+                        "archive_analyzing",
+                        {
+                            "analyzed_entries": index,
+                            "audio_entries": len(tracks),
+                            "tracks_imported": imported,
+                            "duplicates": duplicates,
+                            "current_entry": track.name,
+                        },
+                        name or download_path.name,
+                        source_id,
+                        source_title,
+                        persist=persist,
+                    )
             with self.database.connect() as connection:
                 connection.execute(
                     "UPDATE messages SET status='complete',error=NULL WHERE id=?",
                     (message_record_id,),
+                )
+            if is_archive:
+                self._archive_event(
+                    message_record_id,
+                    "archive_complete",
+                    {
+                        "analyzed_entries": len(tracks),
+                        "audio_entries": len(tracks),
+                        "tracks_imported": imported,
+                        "duplicates": duplicates,
+                    },
+                    name or download_path.name,
+                    source_id,
+                    source_title,
                 )
             logger.info("Processed %s: %s new tracks", name, imported)
             self.on_event(
@@ -350,6 +558,15 @@ class TelegramCollector:
                 connection.execute(
                     "UPDATE messages SET status='failed',error=? WHERE id=?",
                     (str(exc)[:1000], message_record_id),
+                )
+            if is_archive:
+                self._archive_event(
+                    message_record_id,
+                    "archive_failed",
+                    {"error": str(exc)},
+                    name or download_path.name,
+                    source_id,
+                    source_title,
                 )
             self.on_event(
                 "failed",

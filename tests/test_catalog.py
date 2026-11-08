@@ -77,6 +77,38 @@ def test_zip_windows_invalid_names_are_safely_extracted(tmp_path):
     assert extracted[0].name == "Bad__Song_.mp3"
 
 
+def test_zip_reports_validation_and_extraction_progress(tmp_path):
+    archive = tmp_path / "album.zip"
+    with zipfile.ZipFile(archive, "w") as handle:
+        handle.writestr("Album/01 - First.mp3", b"first audio")
+        handle.writestr("Album/02 - Second.flac", b"second audio")
+        handle.writestr("Album/cover.jpg", b"cover")
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        incoming_dir=tmp_path / "incoming",
+        library_dir=tmp_path / "library",
+        database_path=tmp_path / "catalog.sqlite3",
+    )
+    database = Database(settings.database_path)
+    database.initialize()
+    events = []
+
+    extracted = Cataloger(settings, database).expand(
+        archive,
+        tmp_path / "extract",
+        on_progress=lambda event, payload: events.append((event, payload)),
+    )
+
+    assert len(extracted) == 2
+    assert events[0][0] == "archive_validated"
+    assert events[0][1]["entries_total"] == 3
+    assert events[0][1]["audio_entries"] == 2
+    assert events[0][1]["ignored_entries"] == 1
+    assert [event for event, _payload in events].count("archive_extracting") == 2
+    assert events[-1][0] == "archive_extracted"
+    assert events[-1][1]["entries_processed"] == 2
+
+
 def test_catalog_paths_are_bounded_but_original_metadata_is_preserved(tmp_path, monkeypatch):
     source = tmp_path / "source.flac"
     source.write_bytes(b"fake audio")
